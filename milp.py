@@ -208,12 +208,15 @@ if __name__ == '__main__':
 
     data_test = pd.read_csv(f'datasets\\{path_dir}\\test.csv')
     data_train = pd.read_csv(f'datasets\\{path_dir}\\train.csv')
-    data = data_train.append(data_test)
+    data = data_train._append(data_test)
     data = data[['RI', 'Na', 'target']]
 
     mdl, bounds = codify_network(model, data, 'tjeng', False)
     print(mdl.export_to_string())
-    print(bounds)
+    # print(bounds)
+    print("Bounds:")
+    for bound in bounds:
+        print(bound)
 
 # X ---- E
 # x1 == 1 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL

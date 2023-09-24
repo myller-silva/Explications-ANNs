@@ -5,10 +5,10 @@ import os
 from time import time
 
 
-dir_path = ''
-num_classes = 2
+dir_path = 'glass'
+num_classes = 5
 n_neurons = 20
-n_hidden_layers = 4
+n_hidden_layers = 1
 
 data_train = pd.read_csv(os.path.join('datasets', dir_path, 'train.csv')).to_numpy()
 data_test = pd.read_csv(os.path.join('datasets', dir_path, 'test.csv')).to_numpy()
