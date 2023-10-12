@@ -1,23 +1,46 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import MinMaxScaler, scale
 
-data = pd.read_csv('iris', sep=',')
+data = pd.read_csv('C:\\Users\\mylle\\OneDrive\\Documentos\\GitHub\\TestesTypescript\\Explications-ANNs\\datasets\\iris\\iris.tsv', sep='\t')
 
-print(data)
-# all_cols = data.columns
-# y = data['target']
-# data.drop('target', axis=1, inplace=True)
+# normalizar target como numérico
+label_encoder = LabelEncoder()
+data['species'] = label_encoder.fit_transform(data['species']) 
 
-# X_train, X_test, y_train, y_test = train_test_split(data, y, test_size=0.2, random_state=0,stratify=y)
+all_cols = data.columns
+target = 'species'
+# print(data)
 
-# data_train = np.append(X_train, np.expand_dims(y_train, 1), axis=1)
-# data_train = pd.DataFrame(data_train)
+y = data[target]
+# print(y)
+data.drop(target, axis=1, inplace=True)
 
-# data_test = np.append(X_test, np.expand_dims(y_test, 1), axis=1)
-# data_test = pd.DataFrame(data_test)
+# Normalize numeric features
+numeric_cols = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']
+scaler = MinMaxScaler()
+scaler.fit(data[numeric_cols])
+X = scaler.transform(data[numeric_cols])
+X = pd.DataFrame(X)
+X = scale(X)
+data[numeric_cols] = X
 
-# data_train.to_csv('train.csv', index=False, header=all_cols)
-# data_test.to_csv('test.csv', index=False, header=all_cols)
+# print(data)
 
-# print(len(data), len(data_train), len(data_test), len(data_train) + len(data_test))
+X_train, X_test, y_train, y_test = train_test_split(data, y, test_size=0.2, random_state=0,stratify=y)
+
+data_train = np.append(X_train, np.expand_dims(y_train, 1), axis=1)
+data_train = pd.DataFrame(data_train)
+
+data_test = np.append(X_test, np.expand_dims(y_test, 1), axis=1)
+data_test = pd.DataFrame(data_test)
+
+data_train.to_csv('train.csv', index=False, header=all_cols)
+data_test.to_csv('test.csv', index=False, header=all_cols)
+data.to_csv('iris_preprocessado.csv')
+
+print("len(data): ", len(data))
+print("len(data_train): ", len(data_train))
+print("len(data_test): ", len(data_test))
