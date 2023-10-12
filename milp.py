@@ -201,22 +201,22 @@ def get_domain_and_bounds_inputs(dataframe):
     return domain, bounds
 
 
-if __name__ == '__main__':
-    path_dir = 'glass'
-    #model = tf.keras.models.load_model(f'datasets\\{path_dir}\\model_{path_dir}.h5')
-    model = tf.keras.models.load_model(f'datasets\\{path_dir}\\teste.h5')
+# if __name__ == '__main__':
+#     path_dir = 'glass'
+#     #model = tf.keras.models.load_model(f'datasets\\{path_dir}\\model_{path_dir}.h5')
+#     model = tf.keras.models.load_model(f'datasets\\{path_dir}\\teste.h5')
 
-    data_test = pd.read_csv(f'datasets\\{path_dir}\\test.csv')
-    data_train = pd.read_csv(f'datasets\\{path_dir}\\train.csv')
-    data = data_train._append(data_test)
-    data = data[['RI', 'Na', 'target']]
+#     data_test = pd.read_csv(f'datasets\\{path_dir}\\test.csv')
+#     data_train = pd.read_csv(f'datasets\\{path_dir}\\train.csv')
+#     data = data_train._append(data_test)
+#     data = data[['RI', 'Na', 'target']]
 
-    mdl, bounds = codify_network(model, data, 'tjeng', False)
-    print(mdl.export_to_string())
-    # print(bounds)
-    print("Bounds:")
-    for bound in bounds:
-        print(bound)
+#     mdl, bounds = codify_network(model, data, 'tjeng', False)
+#     print(mdl.export_to_string())
+#     # print(bounds)
+#     print("Bounds:")
+#     for bound in bounds:
+#         print(bound)
 
 # X ---- E
 # x1 == 1 /\ x2 == 3 /\ F /\ ~E    INSATISFÁTIVEL

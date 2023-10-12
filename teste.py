@@ -33,7 +33,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
 
     return mdl
 
-
+# todo modificar algoritimo
 def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None):
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
@@ -75,7 +75,7 @@ def main():
                 #{'dir_path': 'breast-cancer', 'n_classes': 2},
                 #{'dir_path': 'cleve', 'n_classes': 2},
                 #{'dir_path': 'cleveland', 'n_classes': 5},
-                #{'dir_path': 'glass', 'n_classes': 5},
+                # {'dir_path': 'glass', 'n_classes': 5},
                 {'dir_path': 'glass2', 'n_classes': 2},
                 #{'dir_path': 'heart-statlog', 'n_classes': 2}, {'dir_path': 'hepatitis', 'n_classes': 2},
                 #{'dir_path': 'spect', 'n_classes': 2},
@@ -83,7 +83,7 @@ def main():
                 ]
 
     configurations = [#{'method': 'fischetti', 'relaxe_constraints': True},
-                      {'method': 'fischetti', 'relaxe_constraints': False},
+                      {'method': 'fischetti', 'relaxe_constraints': True},
                       #{'method': 'tjeng', 'relaxe_constraints': True},
                       {'method': 'tjeng', 'relaxe_constraints': False}]
 
@@ -104,9 +104,9 @@ def main():
 
             data_test = pd.read_csv(f'datasets\\{dir_path}\\test.csv')
             data_train = pd.read_csv(f'datasets\\{dir_path}\\train.csv')
-            data = data_train.append(data_test)
+            data = data_train._append(data_test)
 
-            model_path = f'datasets\\{dir_path}\\model_4layers_20neurons_{dir_path}.h5'
+            model_path = f'datasets\\{dir_path}\\model_4layers_{dir_path}.h5'
             model = tf.keras.models.load_model(model_path)
 
             codify_network_time = []
@@ -167,6 +167,108 @@ def main():
     df.to_csv('results.csv')
 
 
+
+# todo modificar algoritimo
+def get_miminal_explanation_modificado(
+        mdl,
+        network_input, 
+        network_output, 
+        n_classes, method, 
+        output_bounds=None, 
+        initial_explanation=None, 
+        constraint = None):
+    
+    assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
+
+    output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+
+    if initial_explanation is None:
+        input_constraints = mdl.add_constraints(
+            [mdl.get_var_by_name(f'x_{i}') == feature.numpy() for i, feature in enumerate(network_input[0])],
+            names='input')
+    else:
+        input_constraints = mdl.add_constraints(
+            [mdl.get_var_by_name(f'x_{i}') == network_input[0][i].numpy() for i in initial_explanation],
+            names='input')
+
+    binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
+    mdl.add_constraint(mdl.sum(binary_variables) >= 1)
+
+    if method == 'tjeng':
+        mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
+                                                         output_bounds)
+    else:
+        mdl = insert_output_constraints_fischetti(mdl, output_variables, network_output,
+                                                                   binary_variables)
+
+    
+    # todo modificado para fazer com apenas uma constraint
+    if constraint not in input_constraints:
+        return None
+    mdl.remove_constraint(constraint)
+    mdl.solve(log_output=False)
+    if(mdl.solution is not None):
+        mdl.add_constraint(constraint)
+    return mdl.find_matching_linear_constraints('input')
+
+
+
+
+
+def main_modificado():
+    datasets = [{'dir_path': 'glass2', 'n_classes': 2}]
+
+    configurations = [
+        {'method': 'fischetti', 'relaxe_constraints': False}]
+ 
+
+    for dataset in datasets:
+        dir_path = dataset['dir_path']
+        n_classes = dataset['n_classes']
+        model_path = f'datasets\\{dir_path}\\model_1layers_{dir_path}.h5'
+        
+        for config in configurations:
+            print(dataset, config)
+
+            method = config['method']
+            relaxe_constraints = config['relaxe_constraints']
+
+            data_test = pd.read_csv(f'datasets\\{dir_path}\\test.csv')
+            data_train = pd.read_csv(f'datasets\\{dir_path}\\train.csv')
+            data = data_train._append(data_test)
+            
+            model = tf.keras.models.load_model(model_path)
+ 
+            mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
+ 
+            data = data_test.to_numpy()
+            for i in range(data.shape[0]): 
+                network_input = data[i, :-1]
+                print(network_input)
+
+                network_input = tf.reshape(tf.constant(network_input), (1, -1))
+                print(network_input)
+
+                network_output = model.predict(tf.constant(network_input))[0]
+                print(network_output)
+                
+                network_output = tf.argmax(network_output)
+                print(network_output)
+
+                mdl_aux = mdl.clone() 
+
+                explanation = get_miminal_explanation(mdl_aux, network_input, network_output,
+                                                      n_classes=n_classes, method=method, output_bounds=output_bounds)
+
+                print(explanation) 
+ 
+
 if __name__ == '__main__':
     #cProfile.run('main()', sort='time')
-    main()
+    #main()
+    main_modificado()
+
+# todo: alterar para fazer execucao no dataset da ires
+
+
+
