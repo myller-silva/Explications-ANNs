@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler, scale
 
-data = pd.read_csv('C:\\Users\\mylle\\OneDrive\\Documentos\\GitHub\\TestesTypescript\\Explications-ANNs\\datasets\\iris\\iris.tsv', sep='\t')
+data = pd.read_csv('Explications-ANNs\\datasets\\iris\\iris.tsv', sep='\t')
 
 # normalizar target como numérico
 label_encoder = LabelEncoder()
