@@ -1,10 +1,11 @@
+from typing import List
 import numpy as np
 import tensorflow as tf
 from milp import codify_network
 from time import time
 from statistics import mean, stdev
 import pandas as pd
-
+from docplex.mp.constr import LinearConstraint
 
 def insert_output_constraints_fischetti(mdl, output_variables, network_output, binary_variables):
     variable_output = output_variables[network_output]
@@ -34,7 +35,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 # todo modificar algoritimo
-def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None):
+def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
