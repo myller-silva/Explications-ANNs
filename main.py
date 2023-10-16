@@ -76,7 +76,7 @@ def explain_instance(
         dataset["n_classes"],
         dataset["model"],
     )
-    # todo: receber uma configuracao especifica por argumento da funcao
+    
     method = configuration["method"]
     relaxe_constraints = configuration["relaxe_constraints"]
 
@@ -89,21 +89,15 @@ def explain_instance(
 
     mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
 
-    #
-    # data = data_test.to_numpy()
-
     # network_input = data[instance_index, :-1]
     network_input = instance
 
     # todo: perguntar como essa linha funciona exatamente
     network_input = tf.reshape(tf.constant(network_input), (1, -1))
-    # print("reshape: ", network_input)
 
     network_output = model.predict(tf.constant(network_input))[0]
-    # print("predict: ", network_output)
 
     network_output = tf.argmax(network_output)
-    # print("argmax: ", network_output)
 
     mdl_aux = mdl.clone()
 
@@ -142,7 +136,7 @@ def explicar_rede():
         -1.3154442950077396,
     ]
 
-    print("explicar rede")
+    print(">>> explicar rede <<<")
     print("dataset: ", datasets[0])
 
     explanation = explain_instance(
