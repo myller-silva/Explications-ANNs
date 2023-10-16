@@ -2,9 +2,10 @@ import os
 from time import time
 import pandas as pd
 import tensorflow as tf
-
 from milp import codify_network
 from teste import get_miminal_explanation
+from typing import List
+from docplex.mp.constr import LinearConstraint
 
 
 def gerar_rede(dir_path: str, num_classes: int, n_neurons: int, n_hidden_layers: int):
@@ -44,7 +45,6 @@ def gerar_rede(dir_path: str, num_classes: int, n_neurons: int, n_hidden_layers:
     )
 
     start = time()
-    # treinamento
     model.fit(
         x_train,
         y_train_ohe,
@@ -68,74 +68,113 @@ def gerar_rede(dir_path: str, num_classes: int, n_neurons: int, n_hidden_layers:
     model.evaluate(x_test, y_test_ohe, verbose=2)
 
 
-# explicar instancia
-def explicar_instancia( dataset: {}, configurations:[{}], index_instance:int):
+def explain_instance(
+    dataset: {}, configuration: {}, instance_index: int, instance: []
+) -> List[LinearConstraint]:
     dir_path, n_classes, model = (
         dataset["dir_path"],
         dataset["n_classes"],
         dataset["model"],
     )
-    for config in configurations:
-        method = config["method"]
-        relaxe_constraints = config["relaxe_constraints"]
+    # todo: receber uma configuracao especifica por argumento da funcao
+    method = configuration["method"]
+    relaxe_constraints = configuration["relaxe_constraints"]
 
-        data_test = pd.read_csv(f"{dir_path}\\test.csv")
-        data_train = pd.read_csv(f"{dir_path}\\train.csv")
-        data = data_train._append(data_test)
+    data_test = pd.read_csv(f"{dir_path}\\test.csv")
+    data_train = pd.read_csv(f"{dir_path}\\train.csv")
 
-        model = tf.keras.models.load_model(f"{dir_path}\\{model}")
+    data = data_train._append(data_test)
 
-        mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
+    model = tf.keras.models.load_model(f"{dir_path}\\{model}")
 
-        data = data_test.to_numpy()
+    mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
 
-        # for i in range(data.shape[0]):
-          
-        network_input = data[index_instance, :-1]
-        print("network_input: ",network_input)
+    #
+    # data = data_test.to_numpy()
 
-        network_input = tf.reshape(tf.constant(network_input), (1, -1))
-        print("reshape: ", network_input)
+    # network_input = data[instance_index, :-1]
+    network_input = instance
 
-        network_output = model.predict(tf.constant(network_input))[0]
-        print("predict: ", network_output)
+    # todo: perguntar como essa linha funciona exatamente
+    network_input = tf.reshape(tf.constant(network_input), (1, -1))
+    # print("reshape: ", network_input)
 
-        network_output = tf.argmax(network_output)
-        print("argmax: ", network_output)
+    network_output = model.predict(tf.constant(network_input))[0]
+    # print("predict: ", network_output)
 
-        mdl_aux = mdl.clone()
+    network_output = tf.argmax(network_output)
+    # print("argmax: ", network_output)
 
-        # todo verificar melhor como funciona o get minimal explanation
-        explanation = get_miminal_explanation(
-            mdl_aux,
-            network_input,
-            network_output,
-            n_classes=n_classes,
-            method=method,
-            output_bounds=output_bounds,
-        ) 
-        for res in explanation:
-            print(res)
+    mdl_aux = mdl.clone()
+
+    # todo verificar melhor como funciona o get minimal explanation
+    explanation = get_miminal_explanation(
+        mdl_aux,
+        network_input,
+        network_output,
+        n_classes=n_classes,
+        method=method,
+        output_bounds=output_bounds,  #
+    )
+    return explanation
 
 
-# gerar rede com dataset da iris
-dir_path = "datasets\\iris"
-num_classes = 3
-n_neurons = 20
-# todo: por que funciona com n_hidden_layers == 0 ?
-n_hidden_layers = 0
-# gerar_rede(dir_path, num_classes, n_neurons, n_hidden_layers)
+def gerar_rede_com_dataset_iris(n_neurons = 20, n_hidden_layers = 1):
+    dir_path = "datasets\\iris"
+    num_classes = 3 
+    gerar_rede(dir_path, num_classes, n_neurons, n_hidden_layers)
+
+
+def explicar_rede():
+    datasets = [
+        {
+            "dir_path": "datasets\\iris",
+            "model": "models\\model_7layers_20neurons.h5",
+            "n_classes": 3,
+        }
+    ]
+    configurations = [{"method": "fischetti", "relaxe_constraints": False}]
+
+    instance = [
+        -0.9006811702978081,
+        1.019004351971608,
+        -1.340226526622762,
+        -1.3154442950077396,
+    ]
+
+    print("explicar rede")
+    print("dataset: ", datasets[0])
+
+    explanation = explain_instance(
+        dataset=datasets[0],
+        configuration=configurations[0],
+        instance_index=3,
+        instance=instance,
+    )
+
+    for x in explanation:
+        print(x)
+
+
+# gerar_rede_com_dataset_iris(n_neurons=20, n_hidden_layers=6)
+
+explicar_rede()
 
 
 # explicar rede
-print("explicar rede")
-datasets = [
-    {
-        "dir_path": "datasets\\iris",
-        "model": "models\\model_1layers_20neurons.h5",
-        "n_classes": 3,
-    }
-]
-configurations = [{"method": "fischetti", "relaxe_constraints": False}]
+# dataset:  {'dir_path': 'datasets\\iris', 'model': 'models\\model_4layers_20neurons.h5', 'n_classes': 3}
+# 2023-10-16 08:59:39.194132: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+# To enable the following instructions: SSE SSE2 SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+# 1/1 [==============================] - 0s 184ms/step
+# input1: x_0 == -0.90068119764328
+# input2: x_1 == 1.0190043449401855
+# input3: x_2 == -1.3402265310287476
 
-explicar_instancia(dataset=datasets[0], configurations=configurations, index_instance=3)
+# explicar rede
+# dataset:  {'dir_path': 'datasets\\iris', 'model': 'models\\model_5layers_20neurons.h5', 'n_classes': 3}
+# 2023-10-16 09:02:08.020179: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+# To enable the following instructions: SSE SSE2 SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+# 1/1 [==============================] - 0s 246ms/step
+# input2: x_1 == 1.0190043449401855
+# input3: x_2 == -1.3402265310287476
+# input4: x_3 == -1.3154443502426147
