@@ -150,9 +150,10 @@ def explicar_rede():
         print(x)
 
 
-# gerar_rede_com_dataset_iris(n_neurons=20, n_hidden_layers=6)
+for i in range(7):
+    gerar_rede_com_dataset_iris(n_neurons=20, n_hidden_layers=i)
 
-explicar_rede()
+# explicar_rede()
 
 
 # explicar rede
