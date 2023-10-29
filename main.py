@@ -92,7 +92,6 @@ def explain_instance(
     # network_input = data[instance_index, :-1]
     network_input = instance
 
-    # todo: perguntar como essa linha funciona exatamente
     network_input = tf.reshape(tf.constant(network_input), (1, -1))
 
     network_output = model.predict(tf.constant(network_input))[0]
@@ -101,14 +100,13 @@ def explain_instance(
 
     mdl_aux = mdl.clone()
 
-    # todo verificar melhor como funciona o get minimal explanation
     explanation = get_miminal_explanation(
         mdl_aux,
         network_input,
         network_output,
         n_classes=n_classes,
         method=method,
-        output_bounds=output_bounds,  #
+        output_bounds=output_bounds,  
     )
     return explanation
 
@@ -116,6 +114,11 @@ def explain_instance(
 def gerar_rede_com_dataset_iris(n_neurons = 20, n_hidden_layers = 1):
     dir_path = "datasets\\iris"
     num_classes = 3 
+    gerar_rede(dir_path, num_classes, n_neurons, n_hidden_layers)
+
+def gerar_rede_com_dataset_digits(n_neurons = 20, n_hidden_layers = 1):
+    dir_path = "datasets\\digits"
+    num_classes = 10
     gerar_rede(dir_path, num_classes, n_neurons, n_hidden_layers)
 
 
@@ -151,25 +154,9 @@ def explicar_rede():
 
 
 for i in range(7):
-    gerar_rede_com_dataset_iris(n_neurons=20, n_hidden_layers=i)
+    # gerar_rede_com_dataset_iris(n_neurons=20, n_hidden_layers=i)
+    gerar_rede_com_dataset_digits(n_neurons=20, n_hidden_layers=i)
 
 # explicar_rede()
 
 
-# explicar rede
-# dataset:  {'dir_path': 'datasets\\iris', 'model': 'models\\model_4layers_20neurons.h5', 'n_classes': 3}
-# 2023-10-16 08:59:39.194132: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-# To enable the following instructions: SSE SSE2 SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-# 1/1 [==============================] - 0s 184ms/step
-# input1: x_0 == -0.90068119764328
-# input2: x_1 == 1.0190043449401855
-# input3: x_2 == -1.3402265310287476
-
-# explicar rede
-# dataset:  {'dir_path': 'datasets\\iris', 'model': 'models\\model_5layers_20neurons.h5', 'n_classes': 3}
-# 2023-10-16 09:02:08.020179: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-# To enable the following instructions: SSE SSE2 SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-# 1/1 [==============================] - 0s 246ms/step
-# input2: x_1 == 1.0190043449401855
-# input3: x_2 == -1.3402265310287476
-# input4: x_3 == -1.3154443502426147
