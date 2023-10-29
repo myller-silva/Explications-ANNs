@@ -58,6 +58,66 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
 
     return mdl, output_bounds
 
+def codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables):
+    output_bounds = []
+
+    for i in range(len(layers)):
+        A = layers[i].get_weights()[0].T
+        b = layers[i].bias.numpy()
+        x = input_variables if i == 0 else intermediate_variables[i-1]
+        if i != len(layers) - 1: 
+            s = auxiliary_variables[i]
+            a = decision_variables[i]
+            y = intermediate_variables[i]
+        else:
+            y = output_variables
+
+        for j in range(A.shape[0]):
+
+            if i != len(layers) - 1: # se não for a última camada(camada de saída)
+                
+                mdl.maximize(A[j, :] @ x + b[j]) 
+                mdl.solve()
+                ub_y = mdl.solution.get_objective_value() # M+
+                mdl.remove_objective()
+
+                mdl.minimize(A[j, :] @ x + b[j])
+                mdl.solve()
+                ub_s = mdl.solution.get_objective_value() # M-
+                mdl.remove_objective()
+                
+                if(ub_s>=0):
+                    mdl.add_constraint(A[j, :] @ x + b[j] == y[j])
+                    continue
+                if(ub_y<=0):
+                    mdl.add_constraint(y[j] == 0)
+                    continue
+                if(ub_s<0 and ub_y > 0):
+                    mdl.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], ctname=f'c_{i}_{j}')
+                    mdl.add_constraint(y[j] <= ub_y * (1-a[j]))
+                    mdl.add_constraint(s[j] <= -ub_s * a[j])
+                    continue
+
+            # todo: o que fazer se for a ultima camada?
+            else:
+                mdl.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
+                mdl.maximize(y[j])
+                mdl.solve()
+                ub = mdl.solution.get_objective_value()
+                mdl.remove_objective()
+
+                mdl.minimize(y[j])
+                mdl.solve()
+                lb = mdl.solution.get_objective_value()
+                mdl.remove_objective()
+
+                y[j].set_ub(ub)
+                y[j].set_lb(lb)
+                output_bounds.append([lb, ub])
+
+    return mdl, output_bounds
+
+
 
 def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, decision_variables, output_variables):
     output_bounds = []
@@ -149,7 +209,8 @@ def codify_network(model, dataframe, method, relaxe_constraints):
         if relaxe_constraints and method == 'tjeng':
             decision_variables.append(mdl.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
         else:
-            decision_variables.append(mdl.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+            # decision_variables.append(mdl.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+            decision_variables.append(mdl.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
 
     output_variables = mdl.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
 
@@ -157,7 +218,8 @@ def codify_network(model, dataframe, method, relaxe_constraints):
         mdl, output_bounds = codify_network_tjeng(mdl, layers, input_variables,
                                                   intermediate_variables, decision_variables, output_variables)
     else:
-        mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables,
+        # mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables)
+        mdl, output_bounds = codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_variables,
                                                   intermediate_variables, decision_variables, output_variables)
 
     if relaxe_constraints:
