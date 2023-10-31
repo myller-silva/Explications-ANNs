@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 
-
 def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables):
     output_bounds = []
 
@@ -226,7 +225,8 @@ def codify_network(model, dataframe, method, relaxe_constraints):
         # Tighten domain of variables 'a'
         for i in decision_variables:
             for a in i:
-                a.set_vartype('Integer')
+                # a.set_vartype('Integer')
+                a.set_vartype('Continuous')
 
         # Tighten domain of input variables
         for i, x in enumerate(input_variables):
