@@ -99,7 +99,6 @@ def codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_va
                     mdl.add_constraint(s[j] <= -ub_s * a[j])
                     continue
 
-            # todo: o que fazer se for a ultima camada?
             else:
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
                 mdl.maximize(y[j])
