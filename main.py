@@ -80,12 +80,12 @@ def explain_instance(
     method = configuration["method"]
     relaxe_constraints = configuration["relaxe_constraints"]
 
-    data_test = pd.read_csv(f"{dir_path}\\test.csv")
-    data_train = pd.read_csv(f"{dir_path}\\train.csv")
+    data_test = pd.read_csv(f"{dir_path}/test.csv")
+    data_train = pd.read_csv(f"{dir_path}/train.csv")
 
     data = data_train._append(data_test)
 
-    model = tf.keras.models.load_model(f"{dir_path}\\{model}")
+    model = tf.keras.models.load_model(f"{dir_path}/{model}")
 
     mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
 
@@ -126,9 +126,9 @@ def gerar_rede_com_dataset_digits(n_neurons=20, n_hidden_layers=1):
 def explicar_rede():
     datasets = [
         {
-            "dir_path": "datasets\\digits",
-            "model": "models\\model_1layers_20neurons.h5",
-            "n_classes": 3,
+            "dir_path": "datasets/digits",
+            "model": "models/model_5layers_20neurons.h5",
+            "n_classes": 10,
         }
     ]
     configurations = [{"method": "fischetti", "relaxe_constraints": True}]
