@@ -3,7 +3,7 @@ from time import time
 import pandas as pd
 import tensorflow as tf
 from milp import codify_network
-from teste import get_miminal_explanation
+from teste import get_mininal_explanation
 from typing import List
 from docplex.mp.constr import LinearConstraint
 
@@ -100,7 +100,7 @@ def explain_instance(
 
     mdl_aux = mdl.clone()
 
-    explanation = get_miminal_explanation(
+    explanation = get_mininal_explanation(
         mdl_aux,
         network_input,
         network_output,

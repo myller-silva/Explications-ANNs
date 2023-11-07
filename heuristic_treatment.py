@@ -1,7 +1,7 @@
 from anchor import anchor_tabular
 from lime import lime_tabular
 import shap
-from teste import insert_output_constraints_tjeng, get_miminal_explanation
+from teste import insert_output_constraints_tjeng, get_mininal_explanation
 from milp import codify_network
 import tensorflow as tf
 import numpy as np
@@ -130,7 +130,7 @@ def repair_heuristic_explanation2(mdl, heuristic_explanation, network_input, net
 
 
 def refine_heuristic_explanation(mdl, heuristic_explanation, network_input, network_output, n_classes, output_bounds):
-    return get_miminal_explanation(mdl, tf.constant(network_input), network_output, n_classes=n_classes,
+    return get_mininal_explanation(mdl, tf.constant(network_input), network_output, n_classes=n_classes,
                                 method='tjeng', output_bounds=output_bounds, initial_explanation=heuristic_explanation)
 
 
@@ -210,7 +210,7 @@ if __name__ == '__main__':
             mdl = set_kernel_width(mdl.clone(), network_input[0], explainer, features_kernel)
 
         start = time()
-        explanation = get_miminal_explanation(mdl.clone(), tf.constant(network_input), predicted_class,
+        explanation = get_mininal_explanation(mdl.clone(), tf.constant(network_input), predicted_class,
                                               n_classes=len(class_names), method='tjeng', output_bounds=output_bounds)
         time_abductive.append(time()-start)
         n_features = len(explanation)

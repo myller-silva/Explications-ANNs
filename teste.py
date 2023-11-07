@@ -35,7 +35,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 # todo modificar algoritimo
-def get_miminal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
+def get_mininal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
@@ -133,7 +133,7 @@ def main():
                 mdl_aux = mdl.clone()
                 start = time()
 
-                explanation = get_miminal_explanation(mdl_aux, network_input, network_output,
+                explanation = get_mininal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
 
                 time_list.append(time() - start)
@@ -258,7 +258,7 @@ def main_modificado():
 
                 mdl_aux = mdl.clone() 
 
-                explanation = get_miminal_explanation(mdl_aux, network_input, network_output,
+                explanation = get_mininal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
 
                 print(explanation) 
