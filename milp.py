@@ -79,6 +79,10 @@ def codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_va
                 mdl.solve()
                 ub_y = mdl.solution.get_objective_value() # M+
                 mdl.remove_objective()
+                
+                if(ub_y<=0):
+                    mdl.add_constraint(y[j] == 0)
+                    continue
 
                 mdl.minimize(A[j, :] @ x + b[j])
                 mdl.solve()
@@ -88,9 +92,7 @@ def codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_va
                 if(ub_s>=0):
                     mdl.add_constraint(A[j, :] @ x + b[j] == y[j])
                     continue
-                if(ub_y<=0):
-                    mdl.add_constraint(y[j] == 0)
-                    continue
+                
                 if(ub_s<0 and ub_y > 0):
                     mdl.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], ctname=f'c_{i}_{j}')
                     mdl.add_constraint(y[j] <= ub_y * (1-a[j]))
