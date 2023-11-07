@@ -34,7 +34,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
 
     return mdl
 
-# todo modificar algoritimo
+
 def get_mininal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
