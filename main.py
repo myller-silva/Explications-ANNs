@@ -69,7 +69,7 @@ def gerar_rede(dir_path: str, num_classes: int, n_neurons: int, n_hidden_layers:
 
 
 def explain_instance(
-    dataset: {}, configuration: {}, instance_index: int, instance: []
+    dataset: {}, configuration: {}, instance_index: int
 ) -> List[LinearConstraint]:
     dir_path, n_classes, model = (
         dataset["dir_path"],
@@ -89,8 +89,10 @@ def explain_instance(
 
     mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
 
-    # network_input = data[instance_index, :-1]
-    network_input = instance
+    network_input = data.iloc[instance_index, :-1]
+    print(network_input)
+
+    # network_input = instance
 
     network_input = tf.reshape(tf.constant(network_input), (1, -1))
 
@@ -129,87 +131,30 @@ def explicar_rede():
             "dir_path": "datasets/digits",
             "model": "models/model_5layers_20neurons.h5",
             "n_classes": 10,
-        }
+        },
+        {
+            "dir_path": "datasets/iris",
+            "model": "models/model_1layers_20neurons.h5",
+            "n_classes": 3,
+        },
+        {
+            "dir_path": "datasets/iris",
+            "model": "models/model_6layers_20neurons.h5",
+            "n_classes": 3,
+        },
     ]
     configurations = [{"method": "fischetti", "relaxe_constraints": True}]
 
-    print(">>> explicar rede <<<")
-    print("dataset: ", datasets[0])
-
-    explanation = explain_instance(
-        dataset=datasets[0],
-        configuration=configurations[0],
-        instance_index=3,
-        instance=[
-            0.0,
-            0.0,
-            0.25,
-            0.9375,
-            1.0,
-            0.8125,
-            0.8125,
-            0.6666666666666666,
-            0.0,
-            0.0,
-            0.75,
-            0.8125,
-            0.625,
-            0.9375,
-            0.875,
-            0.16666666666666666,
-            0.0,
-            0.125,
-            1.0,
-            0.375,
-            0.125,
-            0.875,
-            0.375,
-            0.0,
-            0.0,
-            0.06666666666666667,
-            0.3125,
-            0.0,
-            0.5625,
-            0.6875,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.4375,
-            0.75,
-            1.0,
-            0.875,
-            0.42857142857142855,
-            0.0,
-            0.0,
-            0.0,
-            0.5,
-            0.9375,
-            0.9375,
-            0.6875,
-            0.125,
-            0.0,
-            0.0,
-            0.0,
-            0.125,
-            1.0,
-            0.5,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.4375,
-            0.9375,
-            0.25,
-            0.0,
-            0.0,
-            0.0
-        ],
-    )
+    for i in range(0, 150):
+        explanation = explain_instance(
+            dataset=datasets[2], configuration=configurations[0], instance_index=i
+        )
+        if(len(explanation)<4):
+            break
 
     for x in explanation:
         print(x)
+    print("len: ", len(explanation))
 
 
 # for i in range(7):
@@ -217,15 +162,3 @@ def explicar_rede():
 #     gerar_rede_com_dataset_digits(n_neurons=20, n_hidden_layers=i)
 
 explicar_rede()
-
-
-# relaxe: True
-# input2: x_1 == 0.10000000149011612
-# input3: x_2 == 0.6000000238418579
-# input4: x_3 == 0.23000000417232513
-
-# relaxe: False
-# input1: x_0 == 0.4000000059604645
-# input2: x_1 == 0.10000000149011612
-# input3: x_2 == 0.6000000238418579
-# input4: x_3 == 0.23000000417232513
