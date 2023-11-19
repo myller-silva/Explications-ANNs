@@ -3,7 +3,7 @@ from time import time
 import pandas as pd
 import tensorflow as tf
 from milp import codify_network
-from teste import get_mininal_explanation
+from teste import get_minimal_explanation
 from typing import List
 from docplex.mp.constr import LinearConstraint
 
@@ -90,8 +90,7 @@ def explain_instance(
     mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
 
     network_input = data.iloc[instance_index, :-1]
-    print(network_input)
-
+    print(network_input) #
     # network_input = instance
 
     network_input = tf.reshape(tf.constant(network_input), (1, -1))
@@ -102,7 +101,7 @@ def explain_instance(
 
     mdl_aux = mdl.clone()
 
-    explanation = get_mininal_explanation(
+    explanation = get_minimal_explanation(
         mdl_aux,
         network_input,
         network_output,

@@ -35,7 +35,7 @@ def insert_output_constraints_tjeng(mdl, output_variables, network_output, binar
     return mdl
 
 
-def get_mininal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
+def get_minimal_explanation_old(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
     assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
 
     output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
@@ -69,12 +69,62 @@ def get_mininal_explanation(mdl, network_input, network_output, n_classes, metho
     return mdl.find_matching_linear_constraints('input')
 
 
+
+def get_minimal_explanation(mdl, network_input, network_output, n_classes, method, output_bounds=None, initial_explanation=None) -> List[LinearConstraint]:
+    assert not (method == 'tjeng' and output_bounds == None), 'If the method tjeng is chosen, output_bounds must be passed.'
+
+    output_variables = [mdl.get_var_by_name(f'o_{i}') for i in range(n_classes)]
+
+    if initial_explanation is None:
+        input_constraints = mdl.add_constraints(
+            [mdl.get_var_by_name(f'x_{i}') == feature.numpy() for i, feature in enumerate(network_input[0])],
+            names='input')
+    else:
+        input_constraints = mdl.add_constraints(
+            [mdl.get_var_by_name(f'x_{i}') == network_input[0][i].numpy() for i in initial_explanation],
+            names='input')
+
+    binary_variables = mdl.binary_var_list(n_classes - 1, name='b')
+    mdl.add_constraint(mdl.sum(binary_variables) >= 1)
+
+    if method == 'tjeng':
+        mdl = insert_output_constraints_tjeng(mdl, output_variables, network_output, binary_variables,
+                                                         output_bounds)
+    else:
+        mdl = insert_output_constraints_fischetti(mdl, output_variables, network_output,
+                                                                   binary_variables)
+
+    output = output_variables[network_output] 
+    for constraint in input_constraints:
+        mdl.remove_constraint(constraint)
+        
+        mdl.minimize(output)
+        mdl.solve(log_output=False)
+        inf = mdl.solution.get_objective_value() 
+        mdl.remove_objective()
+
+        sups = []
+        for o in output_variables:
+            if(not o.equals(output)): 
+                mdl.maximize(o)
+                mdl.solve(log_output=False)
+                sups.append(mdl.solution.get_objective_value())
+                mdl.remove_objective() 
+
+        print(inf, sups)
+        if(not all(inf > element for element in sups)):
+            mdl.add_constraint(constraint)
+    
+    return mdl.find_matching_linear_constraints('input')
+
+
 def main():
     datasets = [#{'dir_path': 'australian', 'n_classes': 2},
                 #{'dir_path': 'auto', 'n_classes': 5},
                 #{'dir_path': 'backache', 'n_classes': 2},
                 #{'dir_path': 'breast-cancer', 'n_classes': 2},
-                #{'dir_path': 'cleve', 'n_classes': 2},
+                #{'dir_path': 'cleve', 'n_cla
+                # sses': 2},
                 #{'dir_path': 'cleveland', 'n_classes': 5},
                 # {'dir_path': 'glass', 'n_classes': 5},
                 {'dir_path': 'glass2', 'n_classes': 2},
@@ -133,7 +183,7 @@ def main():
                 mdl_aux = mdl.clone()
                 start = time()
 
-                explanation = get_mininal_explanation(mdl_aux, network_input, network_output,
+                explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
 
                 time_list.append(time() - start)
@@ -258,7 +308,7 @@ def main_modificado():
 
                 mdl_aux = mdl.clone() 
 
-                explanation = get_mininal_explanation(mdl_aux, network_input, network_output,
+                explanation = get_minimal_explanation(mdl_aux, network_input, network_output,
                                                       n_classes=n_classes, method=method, output_bounds=output_bounds)
 
                 print(explanation) 
