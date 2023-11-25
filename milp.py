@@ -57,10 +57,11 @@ def codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, 
 
     return mdl, output_bounds
 
-def codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables):
+
+def codify_network_fischetti_relaxed(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables, output_bounds_binary_variables):
     output_bounds = []
 
-    for i in range(len(layers)):
+    for i in range(len(layers)): # para cada camada
         A = layers[i].get_weights()[0].T
         b = layers[i].bias.numpy()
         x = input_variables if i == 0 else intermediate_variables[i-1]
@@ -71,52 +72,40 @@ def codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_va
         else:
             y = output_variables
 
-        for j in range(A.shape[0]):
+        for j in range(A.shape[0]): 
 
             if i != len(layers) - 1: # se não for a última camada(camada de saída)
                 
                 mdl.maximize(A[j, :] @ x + b[j]) 
                 mdl.solve()
-                ub_y = mdl.solution.get_objective_value() # M+
+                m_more = mdl.solution.get_objective_value() # M+
                 mdl.remove_objective()
                 
-                if(ub_y<=0):
+                if(m_more<=0):
                     mdl.add_constraint(y[j] == 0)
                     continue
 
                 mdl.minimize(A[j, :] @ x + b[j])
                 mdl.solve()
-                ub_s = mdl.solution.get_objective_value() # M-
+                m_less = mdl.solution.get_objective_value() # M-
                 mdl.remove_objective()
                 
-                if(ub_s>=0):
+                if(m_less>=0):
                     mdl.add_constraint(A[j, :] @ x + b[j] == y[j])
                     continue
                 
-                if(ub_s<0 and ub_y > 0):
+                if(m_less<0 and m_more > 0):
                     mdl.add_constraint(A[j, :] @ x + b[j] == y[j] - s[j], ctname=f'c_{i}_{j}')
-                    mdl.add_constraint(y[j] <= ub_y * (1-a[j]))
-                    mdl.add_constraint(s[j] <= -ub_s * a[j])
+                    mdl.add_constraint(y[j] <= m_more * (1-a[j]))
+                    mdl.add_constraint(s[j] <= -m_less * a[j])
                     continue
-
+            
             else:
-                mdl.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f'c_{i}_{j}')
-                mdl.maximize(y[j])
-                mdl.solve()
-                ub = mdl.solution.get_objective_value()
-                mdl.remove_objective()
-
-                mdl.minimize(y[j])
-                mdl.solve()
-                lb = mdl.solution.get_objective_value()
-                mdl.remove_objective()
-
-                y[j].set_ub(ub)
-                y[j].set_lb(lb)
+                # todo: não é necessario calcular limites dos outputs? já que há limites mais precisos vindo da variavel output_bounds_binary_variables
+                lb, ub = output_bounds_binary_variables[j]
                 output_bounds.append([lb, ub])
 
     return mdl, output_bounds
-
 
 
 def codify_network_tjeng(mdl, layers, input_variables, intermediate_variables, decision_variables, output_variables):
@@ -209,8 +198,7 @@ def codify_network(model, dataframe, method, relaxe_constraints):
         if relaxe_constraints and method == 'tjeng':
             decision_variables.append(mdl.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
         else:
-            # decision_variables.append(mdl.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
-            decision_variables.append(mdl.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+            decision_variables.append(mdl.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
 
     output_variables = mdl.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
 
@@ -218,16 +206,14 @@ def codify_network(model, dataframe, method, relaxe_constraints):
         mdl, output_bounds = codify_network_tjeng(mdl, layers, input_variables,
                                                   intermediate_variables, decision_variables, output_variables)
     else:
-        # mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables)
-        mdl, output_bounds = codify_network_fischetti_modified(mdl, layers, input_variables, auxiliary_variables,
+        mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables,
                                                   intermediate_variables, decision_variables, output_variables)
 
     if relaxe_constraints:
         # Tighten domain of variables 'a'
         for i in decision_variables:
             for a in i:
-                # a.set_vartype('Integer')
-                a.set_vartype('Continuous')
+                a.set_vartype('Integer')
 
         # Tighten domain of input variables
         for i, x in enumerate(input_variables):
@@ -262,6 +248,74 @@ def get_domain_and_bounds_inputs(dataframe):
             bounds.append([bound_inf, bound_sup])
 
     return domain, bounds
+
+
+def codify_network_relaxed(model, dataframe, method, relaxe_constraints, output_bounds_binary_variables):
+    layers = model.layers
+    num_features = layers[0].get_weights()[0].shape[0]
+    mdl = mp.Model()
+
+    domain_input, bounds_input = get_domain_and_bounds_inputs(dataframe)
+    bounds_input = np.array(bounds_input)
+
+    if relaxe_constraints:
+        input_variables = mdl.continuous_var_list(num_features, lb=bounds_input[:, 0], ub=bounds_input[:, 1], name='x')
+    else:
+        input_variables = []
+        for i in range(len(domain_input)):
+            lb, ub = bounds_input[i]
+            if domain_input[i] == 'C':
+                input_variables.append(mdl.continuous_var(lb=lb, ub=ub, name=f'x_{i}'))
+            elif domain_input[i] == 'I':
+                input_variables.append(mdl.integer_var(lb=lb, ub=ub, name=f'x_{i}'))
+            elif domain_input[i] == 'B':
+                input_variables.append(mdl.binary_var(name=f'x_{i}'))
+
+    intermediate_variables = []
+    auxiliary_variables = []
+    decision_variables = []
+
+    for i in range(len(layers)-1):
+        weights = layers[i].get_weights()[0]
+        intermediate_variables.append(mdl.continuous_var_list(weights.shape[1], lb=0, name='y', key_format=f"_{i}_%s"))
+
+        if method == 'fischetti':
+            auxiliary_variables.append(mdl.continuous_var_list(weights.shape[1], lb=0, name='s', key_format=f"_{i}_%s"))
+
+        if relaxe_constraints and method == 'tjeng':
+            decision_variables.append(mdl.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+        else:
+            # decision_variables.append(mdl.binary_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+            decision_variables.append(mdl.continuous_var_list(weights.shape[1], name='a', lb=0, ub=1, key_format=f"_{i}_%s"))
+
+    output_variables = mdl.continuous_var_list(layers[-1].get_weights()[0].shape[1], lb=-infinity, name='o')
+
+    if method == 'tjeng':
+        # modificar depois para utilizar bounds precisos
+        mdl, output_bounds = codify_network_tjeng(mdl, layers, input_variables,
+                                                  intermediate_variables, decision_variables, output_variables)
+    else:
+        # mdl, output_bounds = codify_network_fischetti(mdl, layers, input_variables, auxiliary_variables, intermediate_variables, decision_variables, output_variables)
+        mdl, output_bounds = codify_network_fischetti_relaxed(mdl, layers, input_variables, auxiliary_variables,
+                                                  intermediate_variables, decision_variables, output_variables, output_bounds_binary_variables)
+
+    if relaxe_constraints:
+        # Tighten domain of variables 'a'
+        for i in decision_variables:
+            for a in i:
+                # a.set_vartype('Integer')
+                a.set_vartype('Continuous')
+
+        # Tighten domain of input variables
+        for i, x in enumerate(input_variables):
+            if domain_input[i] == 'I':
+                x.set_vartype('Integer')
+            elif domain_input[i] == 'B':
+                x.set_vartype('Binary')
+            elif domain_input[i] == 'C':
+                x.set_vartype('Continuous')
+
+    return mdl, output_bounds
 
 
 # if __name__ == '__main__':

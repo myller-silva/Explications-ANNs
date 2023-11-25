@@ -2,8 +2,8 @@ import os
 from time import time
 import pandas as pd
 import tensorflow as tf
-from milp import codify_network
-from teste import get_minimal_explanation
+from milp import codify_network, codify_network_relaxed
+from teste import get_explanation_relaxed, get_minimal_explanation
 from typing import List
 from docplex.mp.constr import LinearConstraint
 
@@ -87,11 +87,19 @@ def explain_instance(
 
     model = tf.keras.models.load_model(f"{dir_path}/{model}")
 
-    mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
+    # todo: modificar
+    # mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
+    mdl_milp_with_binary_variable, output_bounds_binary_variables = codify_network(
+        model, data, method, relaxe_constraints
+    )
+
+    # usar bounds precisos do primeiro modelo
+    model_milp_relaxed, output_bounds_relaxed = codify_network_relaxed(
+        model, data, method, relaxe_constraints, output_bounds_binary_variables
+    )
 
     network_input = data.iloc[instance_index, :-1]
-    print(network_input) #
-    # network_input = instance
+    print(network_input)  # network_input = instance
 
     network_input = tf.reshape(tf.constant(network_input), (1, -1))
 
@@ -99,15 +107,15 @@ def explain_instance(
 
     network_output = tf.argmax(network_output)
 
-    mdl_aux = mdl.clone()
+    mdl_aux = mdl_milp_with_binary_variable.clone() # todo: testar depois com mdl_milp_with_binary_variable 
 
-    explanation = get_minimal_explanation(
+    explanation = get_explanation_relaxed(
         mdl_aux,
         network_input,
         network_output,
         n_classes=n_classes,
         method=method,
-        output_bounds=output_bounds,
+        output_bounds=output_bounds_binary_variables,
     )
     return explanation
 
@@ -144,20 +152,14 @@ def explicar_rede():
     ]
     configurations = [{"method": "fischetti", "relaxe_constraints": True}]
 
-    for i in range(0, 150):
+    for i in range(0, 1):
         explanation = explain_instance(
-            dataset=datasets[2], configuration=configurations[0], instance_index=i
+            dataset=datasets[1], configuration=configurations[0], instance_index=i
         )
-        if(len(explanation)<4):
-            break
 
     for x in explanation:
         print(x)
     print("len: ", len(explanation))
 
-
-# for i in range(7):
-#     # gerar_rede_com_dataset_iris(n_neurons=20, n_hidden_layers=i)
-#     gerar_rede_com_dataset_digits(n_neurons=20, n_hidden_layers=i)
 
 explicar_rede()
