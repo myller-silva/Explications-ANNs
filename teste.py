@@ -90,7 +90,7 @@ def get_minimal_explanation(
         mdl.remove_constraint(constraint)
 
         mdl.solve(log_output=False)
-        if mdl.solution is not None:
+        if mdl.solution is None: # todo: erro  
             mdl.add_constraint(constraint)
 
     return mdl.find_matching_linear_constraints("input")
@@ -104,7 +104,7 @@ def get_explanation_relaxed(
     method,
     output_bounds=None,
     initial_explanation=None,
-    delta=0.3,
+    delta=0.1,
 ) -> List[LinearConstraint]:
     # todo: output_bounds só é relevante se o metodo for tjeng
     assert not (
@@ -148,41 +148,14 @@ def get_explanation_relaxed(
         x = constraint.get_left_expr()
         v = constraint.get_right_expr()
 
-        # adicionar restricao do tipo "v - delta <= x_i <= v + delta"
-        # obs: se o delta for igual a 1, o resultado é igual ao utilizar o metodo do levi.
-        # quanto menor o delta, mais restricoes são descartadas
-
-        constraint_1 = mdl.add_constraint(v - delta <= x)
-        constraint_2 = mdl.add_constraint(x <= v + delta)
+        constraint_left = mdl.add_constraint(v - delta <= x)
+        constraint_right = mdl.add_constraint(x <= v + delta)
 
         mdl.solve(log_output=False)
-        if mdl.solution is not None:
-            mdl.remove_constraint(constraint_1)
-            mdl.remove_constraint(constraint_2)
+        if mdl.solution is None:
             mdl.add_constraint(constraint)
-
-    # output = output_variables[network_output]
-    # for constraint in input_constraints:
-    #     mdl.remove_constraint(constraint)
-
-    #     print(constraint)
-
-    #     mdl.minimize(output)
-    #     mdl.solve(log_output=False)
-    #     inf = mdl.solution.get_objective_value()
-    #     mdl.remove_objective()
-
-    #     sups = []
-    #     for o in output_variables:
-    #         if(not o.equals(output)):
-    #             mdl.maximize(o)
-    #             mdl.solve(log_output=False)
-    #             sups.append(mdl.solution.get_objective_value())
-    #             mdl.remove_objective()
-
-    #     print(inf, sups)
-    #     if(not all(inf > element for element in sups)):
-    #         mdl.add_constraint(constraint)
+            mdl.remove_constraint(constraint_left)
+            mdl.remove_constraint(constraint_right)
 
     return mdl.find_matching_linear_constraints("input")
 
