@@ -87,15 +87,20 @@ def explain_instance(
 
     model = tf.keras.models.load_model(f"{dir_path}/{model}")
 
-    # todo: modificar
-    # mdl, output_bounds = codify_network(model, data, method, relaxe_constraints)
-    mdl_milp_with_binary_variable, output_bounds_binary_variables = codify_network(
-        model, data, method, relaxe_constraints
-    )
+    (
+        mdl_milp_with_binary_variable,
+        output_bounds_binary_variables,
+        bounds,
+    ) = codify_network(model, data, method, relaxe_constraints)
 
     # usar bounds precisos do primeiro modelo
     model_milp_relaxed, output_bounds_relaxed = codify_network_relaxed(
-        model, data, method, relaxe_constraints, output_bounds_binary_variables
+        model,
+        data,
+        method,
+        relaxe_constraints,
+        output_bounds_binary_variables,
+        bounds=bounds,
     )
 
     network_input = data.iloc[instance_index, :-1]
@@ -107,9 +112,19 @@ def explain_instance(
 
     network_output = tf.argmax(network_output)
 
-    mdl_aux = mdl_milp_with_binary_variable.clone() # todo: testar depois com mdl_milp_with_binary_variable 
+    mdl_aux = model_milp_relaxed.clone()
 
-    explanation = get_explanation_relaxed(
+    # explanation = get_explanation_relaxed(
+    #     mdl_aux,
+    #     network_input,
+    #     network_output,
+    #     n_classes=n_classes,
+    #     method=method,
+    #     output_bounds=output_bounds_binary_variables,
+    #     delta = 1
+    # )
+
+    explanation = get_minimal_explanation(
         mdl_aux,
         network_input,
         network_output,
@@ -136,7 +151,7 @@ def explicar_rede():
     datasets = [
         {
             "dir_path": "datasets/digits",
-            "model": "models/model_5layers_20neurons.h5",
+            "model": "models/model_1layers_20neurons.h5",
             "n_classes": 10,
         },
         {
@@ -152,14 +167,16 @@ def explicar_rede():
     ]
     configurations = [{"method": "fischetti", "relaxe_constraints": True}]
 
-    for i in range(0, 1):
+    for i in range(0, 10):
         explanation = explain_instance(
-            dataset=datasets[1], configuration=configurations[0], instance_index=i
+            dataset=datasets[0], configuration=configurations[0], instance_index=i
         )
 
-    for x in explanation:
-        print(x)
-    print("len: ", len(explanation))
+        for x in explanation:
+            print(x)
+        print("len: ", len(explanation), "\n")
+        # if(len(explanation)<4):
+        #     break
 
 
 explicar_rede()
