@@ -90,7 +90,7 @@ def get_minimal_explanation(
         mdl.remove_constraint(constraint)
 
         mdl.solve(log_output=False)
-        if mdl.solution is None: # todo: erro  
+        if mdl.solution is not None: 
             mdl.add_constraint(constraint)
 
     return mdl.find_matching_linear_constraints("input")
@@ -152,7 +152,7 @@ def get_explanation_relaxed(
         constraint_right = mdl.add_constraint(x <= v + delta)
 
         mdl.solve(log_output=False)
-        if mdl.solution is None:
+        if mdl.solution is not None:
             mdl.add_constraint(constraint)
             mdl.remove_constraint(constraint_left)
             mdl.remove_constraint(constraint_right)
