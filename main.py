@@ -152,6 +152,8 @@ def gerar_rede_com_dataset_wine(n_neurons=20, n_hidden_layers=1):
     num_classes = 10
     gerar_rede(dir_path, num_classes, n_neurons, n_hidden_layers)
 
+def ola_mundo():
+    print("ola mundo")
 
 def explicar_rede():
     datasets = [

@@ -7,7 +7,7 @@ from statistics import mean, stdev
 import pandas as pd
 from docplex.mp.constr import LinearConstraint
 
-
+# todo: ver se faz uma chamada para cada classe não predita
 def insert_output_constraints_fischetti(
     mdl, output_variables, network_output, binary_variables
 ):
@@ -74,7 +74,7 @@ def get_minimal_explanation(
             names="input",
         )
 
-    binary_variables = mdl.binary_var_list(n_classes - 1, name="b")
+    binary_variables = mdl.binary_var_list(n_classes - 1, name="b") # todo: como isso é utilizado dentro do insert_output_constraints_fischetti?
     mdl.add_constraint(mdl.sum(binary_variables) >= 1)
 
     if method == "tjeng":
@@ -137,6 +137,9 @@ def get_explanation_relaxed(
         mdl = insert_output_constraints_tjeng(
             mdl, output_variables, network_output, binary_variables, output_bounds
         )
+
+    # todo: !(o1>o2 and o1>o3)
+    # todo: modificar para o1<=o2 or o1<=o3
     else:
         mdl = insert_output_constraints_fischetti(
             mdl, output_variables, network_output, binary_variables

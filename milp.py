@@ -49,7 +49,7 @@ def codify_network_fischetti(
                 y[j].set_ub(ub_y)
                 s[j].set_ub(ub_s)
 
-                bounds.append([-ub_s, ub_y]) # todo: verificar se está correto
+                bounds.append([-ub_s, ub_y])
 
             else:
                 mdl.add_constraint(A[j, :] @ x + b[j] == y[j], ctname=f"c_{i}_{j}")
@@ -67,12 +67,12 @@ def codify_network_fischetti(
                 y[j].set_lb(lb)
                 output_bounds.append([lb, ub])
                 
-                bounds.append([lb, ub]) # todo: verificar se está correto
+                bounds.append([lb, ub])
 
     return mdl, output_bounds, bounds
 
 
-# todo: retornar limites (louer bound e upper bound)
+# todo: ver se faz uma chamada para cada classe não predita
 def codify_network_fischetti_relaxed(
     mdl,
     layers,
@@ -97,24 +97,12 @@ def codify_network_fischetti_relaxed(
         else:
             y = output_variables
 
-        for j in range(A.shape[0]):
+        for j in range(A.shape[0]): # para cada neuronio da camada
             if i != len(layers) - 1:  # se não for a última camada(camada de saída)
-                # mdl.maximize(A[j, :] @ x + b[j])
-                # mdl.solve()
-                # m_more = mdl.solution.get_objective_value()  # M+
-                # mdl.remove_objective()
-                # m_less, m_more = bounds[j] #  index off erro
                 m_less, m_more = bounds[j]
-                # m_less = m_less * (-1)
-                # print(bounds[j])
                 if m_more <= 0:
                     mdl.add_constraint(y[j] == 0)
                     continue
-
-                # mdl.minimize(A[j, :] @ x + b[j])
-                # mdl.solve()
-                # m_less = mdl.solution.get_objective_value()  # M-
-                # mdl.remove_objective()
 
                 if m_less >= 0:
                     mdl.add_constraint(A[j, :] @ x + b[j] == y[j])
@@ -129,10 +117,7 @@ def codify_network_fischetti_relaxed(
                     continue
 
             else:
-                # todo: não é necessario calcular limites dos outputs? já que há limites mais precisos vindo da variavel output_bounds_binary_variables
                 lb, ub = output_bounds_binary_variables[j]
-                # lb, ub = [] # receber da variavel bounds
-                # print(bounds[j])
                 output_bounds.append([lb, ub])
 
     return mdl, output_bounds
@@ -322,7 +307,6 @@ def get_domain_and_bounds_inputs(dataframe):
     return domain, bounds
 
 
-# todo: retornar limites (louer bound e upper bound)
 def codify_network_relaxed(
     model, dataframe, method, relaxe_constraints, output_bounds_binary_variables, bounds
 ):
